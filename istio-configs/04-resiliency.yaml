@@ -1,0 +1,107 @@
+##################################################################################################
+# Istio Resiliency - Timeouts, Retries, Circuit Breakers & Fault Injection
+#
+# This file configures resilience patterns for the 'ratings' service:
+#   1. Timeouts: 2s per request to prevent hanging
+#   2. Retries: 3 attempts on 5xx/connect-failure/reset errors
+#   3. Circuit Breaking: Eject degraded endpoints via outlier detection
+#   4. Fault Injection: Simulate 5s delays and HTTP 500 aborts on ratings
+#      to validate that timeouts and retries catch injected failures
+#
+# Core Requirements #7 (circuit breaker), #8 (timeouts/retries), #9 (fault injection).
+#
+# NOTE: This file contains the ONLY DestinationRule for 'ratings'. Do NOT define
+# another DestinationRule for host:ratings elsewhere — Istio does not merge them.
+##################################################################################################
+
+# ================================
+# SECTION 1: Timeouts, Retries & Fault Injection (Combined VirtualService)
+# ================================
+# VirtualService for the 'ratings' service combining:
+#   - 2-second timeout per request
+#   - Up to 3 retries on transient errors (1s per-try timeout)
+#   - Fault injection: 5s delay for 50% of requests, HTTP 500 for 10%
+#
+# How this validates resiliency:
+#   - The 5s injected delay exceeds the 2s timeout, proving timeout enforcement
+#   - The HTTP 500 abort triggers the retry logic (up to 3 attempts)
+#   - Observe in Jaeger: traces show timeout-triggered retries on ratings calls
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ratings
+  namespace: default
+spec:
+  hosts:
+  - ratings
+  http:
+  - fault:
+      delay:
+        # Inject 5s delay for 50% of requests — exceeds the 2s timeout
+        percentage:
+          value: 50.0
+        fixedDelay: 5s
+      abort:
+        # Return HTTP 500 for 10% of requests — triggers retry logic
+        percentage:
+          value: 10.0
+        httpStatus: 500
+    route:
+    - destination:
+        host: ratings
+        subset: v1
+    # Maximum time to wait for a complete response
+    timeout: 2s
+    retries:
+      # Number of retry attempts before giving up
+      attempts: 3
+      # Timeout per individual retry attempt
+      perTryTimeout: 1s
+      # Conditions that trigger a retry
+      retryOn: 5xx,connect-failure,reset
+---
+
+# ================================
+# SECTION 2: Circuit Breaker (Outlier Detection) + Subsets
+# ================================
+# Single DestinationRule for 'ratings' containing BOTH:
+#   a) trafficPolicy with circuit breaker (outlierDetection)
+#   b) subset definitions (v1)
+#
+# Circuit breaker behavior:
+#   - If an endpoint returns 5 consecutive gateway errors → ejected for 30s
+#   - Maximum 100% of hosts can be ejected (necessary for single-replica services)
+#   - Health checks run every 10s (interval)
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: ratings-destination
+  namespace: default
+spec:
+  host: ratings
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        h2UpgradePolicy: DEFAULT
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      # Health check interval
+      interval: 10s
+      # Number of consecutive gateway errors before ejection
+      consecutiveGatewayErrors: 5
+      # Number of consecutive local-origin failures before ejection
+      consecutiveLocalOriginFailures: 5
+      # Duration the host is ejected from the load balancing pool
+      baseEjectionTime: 30s
+      # Maximum percentage of hosts that can be ejected
+      maxEjectionPercent: 100
+  subsets:
+  - name: v1
+    labels:
+      version: v1
