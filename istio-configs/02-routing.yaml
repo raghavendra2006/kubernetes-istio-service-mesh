@@ -1,0 +1,71 @@
+##################################################################################################
+# Istio Traffic Routing - Canary Deployment Configuration
+#
+# This file implements a canary deployment for the 'reviews' service by:
+#   1. Defining version subsets (v1, v2, v3) via a DestinationRule
+#   2. Splitting traffic 90% to v1 and 10% to v2 via a VirtualService
+#
+# Core Requirement #4: Implement a Canary Deployment using traffic weight splitting.
+# Core Requirement #5: Define specific version subsets using a DestinationRule.
+#
+# NOTE: DestinationRules for 'ratings' are defined in 04-resiliency.yaml alongside
+# the circuit breaker config. Istio does NOT merge multiple DestinationRules for the
+# same host — only one will take effect (IST0145). Each host must have exactly ONE
+# DestinationRule across the entire mesh configuration.
+##################################################################################################
+
+# ================================
+# DestinationRule: Defines version subsets for the 'reviews' service.
+# Each subset maps to pods with the corresponding 'version' label.
+#
+#   Subset v1 → pods with label version: v1 (no star ratings)
+#   Subset v2 → pods with label version: v2 (black star ratings)
+#   Subset v3 → pods with label version: v3 (red star ratings)
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: reviews-destination
+  namespace: default
+spec:
+  host: reviews
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+  - name: v3
+    labels:
+      version: v3
+---
+
+# ================================
+# VirtualService: Canary traffic split for the 'reviews' service.
+#
+# Traffic distribution:
+#   90% → reviews v1 (stable, no star ratings)
+#   10% → reviews v2 (canary, black star ratings)
+#
+# This enables safe, incremental rollout of the v2 version.
+# Monitor error rates in Kiali/Grafana before increasing v2 weight.
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: reviews
+  namespace: default
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+      weight: 90
+    - destination:
+        host: reviews
+        subset: v2
+      weight: 10
