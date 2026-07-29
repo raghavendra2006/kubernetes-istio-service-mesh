@@ -1,0 +1,39 @@
+##################################################################################################
+# Istio Security - Mutual TLS (mTLS) Configuration
+#
+# This file enforces strict mutual TLS for all inter-service communication
+# within the 'default' namespace. When STRICT mode is enabled:
+#   - All traffic between meshed services is encrypted with TLS certificates
+#     automatically issued and rotated by istiod (Citadel).
+#   - Plaintext (unencrypted) connections are rejected.
+#   - Only pods with valid Istio-issued certificates can communicate.
+#
+# Core Requirement #6: Enforce strict Mutual TLS for all inter-service communication.
+##################################################################################################
+
+# ================================
+# PeerAuthentication: Namespace-wide strict mTLS policy
+#
+# This policy applies to ALL services in the 'default' namespace.
+# Any pod attempting to communicate without a valid mTLS certificate
+# (e.g., a pod outside the mesh or without an Envoy sidecar) will
+# have its connection terminated.
+#
+# Verification:
+#   1. Deploy a pod without sidecar injection in a different namespace
+#   2. Attempt to curl a service in the 'default' namespace
+#   3. The connection should fail with "connection reset" or TLS error
+#
+# Example verification command:
+#   kubectl run test-pod --image=curlimages/curl -n non-mesh-ns \
+#     --restart=Never --rm -it -- curl http://productpage.default:9080/productpage
+#   Expected: curl: (56) Recv failure: Connection reset by peer
+# ================================
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT
