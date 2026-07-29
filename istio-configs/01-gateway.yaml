@@ -1,0 +1,73 @@
+##################################################################################################
+# Istio Gateway & VirtualService - Ingress Configuration
+#
+# This file exposes the Bookinfo application to external traffic via the
+# Istio Ingress Gateway. The Gateway resource configures the edge Envoy proxy,
+# and the VirtualService routes incoming requests to the productpage frontend.
+#
+# Core Requirement #3: Configure an Istio Gateway and VirtualService to expose
+# the application to external traffic.
+##################################################################################################
+
+# ================================
+# Gateway: Configures the edge Envoy proxy (istio-ingressgateway)
+# to listen on port 80 for HTTP traffic from any host.
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: bookinfo-gateway
+  namespace: default
+spec:
+  # Select the default Istio Ingress Gateway controller
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+
+# ================================
+# VirtualService: Routes edge traffic from the Gateway to the
+# productpage frontend service on port 9080.
+#
+# Supported routes:
+#   /productpage    - Main product page
+#   /static/*       - Static assets (CSS, JS, images)
+#   /login          - Login endpoint
+#   /logout         - Logout endpoint
+#   /api/v1/products/* - REST API endpoints
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: bookinfo
+  namespace: default
+spec:
+  hosts:
+  - "*"
+  # Bind this VirtualService to the bookinfo-gateway
+  # Without this binding, the Gateway cannot route traffic
+  gateways:
+  - bookinfo-gateway
+  http:
+  - match:
+    - uri:
+        exact: /productpage
+    - uri:
+        prefix: /static
+    - uri:
+        exact: /login
+    - uri:
+        exact: /logout
+    - uri:
+        prefix: /api/v1/products
+    route:
+    - destination:
+        host: productpage
+        port:
+          number: 9080
