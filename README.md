@@ -394,8 +394,9 @@ kubectl get virtualservice                               # bookinfo, reviews, ra
 kubectl get virtualservice reviews -o jsonpath='{.spec.http[0].route[*].weight}'
 # Expected: 90 10
 
-# ── mTLS ──
+# ── mTLS & Zero-Trust RBAC ──
 kubectl get peerauthentication -n default                # mode: STRICT
+kubectl get authorizationpolicy -n default              # productpage-viewer, details-viewer, etc.
 istioctl x describe pod $(kubectl get pod -l app=productpage \
   -o jsonpath='{.items[0].metadata.name}')               # Shows STRICT mTLS
 
@@ -424,9 +425,10 @@ kubernetes-istio-service-mesh/
 │   └── bookinfo.yaml           # Kubernetes Deployments & Services (with health probes)
 ├── istio-configs/
 │   ├── 01-gateway.yaml         # Istio Gateway + VirtualService for ingress
-│   ├── 02-routing.yaml         # Canary VirtualService (90/10) + reviews DestinationRule
-│   ├── 03-security.yaml        # PeerAuthentication (strict mTLS)
-│   └── 04-resiliency.yaml      # Timeouts, retries, circuit breaker, fault injection
+│   ├── 02-routing.yaml         # Canary VirtualService (90/10) + DestinationRules (reviews, details, productpage)
+│   ├── 03-security.yaml        # PeerAuthentication (strict mTLS) + AuthorizationPolicies (Zero-Trust RBAC)
+│   ├── 04-resiliency.yaml      # Timeouts, retries, circuit breaker, fault injection
+│   └── 05-telemetry.yaml       # Custom Envoy JSON access logging & telemetry stream
 ├── evidence/                   # Screenshots of Kiali, Jaeger, traffic split proof
 ├── architecture.png            # System architecture diagram
 ├── .gitignore                  # Git ignore rules

@@ -42,6 +42,44 @@ spec:
 ---
 
 # ================================
+# DestinationRule: Defines version subset and mTLS policy for 'details'.
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: details-destination
+  namespace: default
+spec:
+  host: details
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+---
+
+# ================================
+# DestinationRule: Defines version subset and mTLS policy for 'productpage'.
+# ================================
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: productpage-destination
+  namespace: default
+spec:
+  host: productpage
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+---
+
+# ================================
 # VirtualService: Canary traffic split for the 'reviews' service.
 #
 # Traffic distribution:

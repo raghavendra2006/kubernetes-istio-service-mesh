@@ -37,3 +37,96 @@ metadata:
 spec:
   mtls:
     mode: STRICT
+---
+
+# ================================
+# AuthorizationPolicy: Zero-Trust Access Control (RBAC)
+#
+# Enforces identity-based access control rules between microservices using
+# SPIFFE service account principals.
+#
+# Call Graph:
+#   1. Ingress Gateway -> productpage
+#   2. productpage -> details & reviews
+#   3. reviews -> ratings
+# ================================
+
+# Policy 1: Allow Ingress Gateway to access productpage
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: productpage-viewer
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: productpage
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account", "cluster.local/ns/default/sa/bookinfo-productpage"]
+    to:
+    - operation:
+        methods: ["GET"]
+---
+
+# Policy 2: Allow productpage service account to access details service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: details-viewer
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: details
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/default/sa/bookinfo-productpage"]
+    to:
+    - operation:
+        methods: ["GET"]
+---
+
+# Policy 3: Allow productpage service account to access reviews service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: reviews-viewer
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: reviews
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/default/sa/bookinfo-productpage"]
+    to:
+    - operation:
+        methods: ["GET"]
+---
+
+# Policy 4: Allow reviews service account to access ratings service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ratings-viewer
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: ratings
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/default/sa/bookinfo-reviews"]
+    to:
+    - operation:
+        methods: ["GET"]
+
