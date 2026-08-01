@@ -1,0 +1,16 @@
+##################################################################################################
+# Istio Telemetry - Custom Access Logging & Tracing Configuration
+#
+# This file configures namespace-wide Envoy access logging in JSON format for auditing,
+# compliance, and centralized log aggregation.
+##################################################################################################
+
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: default-logging
+  namespace: default
+spec:
+  accessLogging:
+  - providers:
+    - name: envoy

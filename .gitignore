@@ -13,5 +13,5 @@ Desktop.ini
 .env.local
 
 # Istio release binaries (downloaded at runtime)
-istio-*/
+istio-[0-9]*/
 istio-*.zip
