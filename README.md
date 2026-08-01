@@ -1,6 +1,6 @@
 # Kubernetes Service Mesh & Traffic Management with Istio
 
-[![Istio](https://img.shields.io/badge/Istio-1.20-blue?logo=istio)](https://istio.io/)
+[![Istio](https://img.shields.io/badge/Istio-1.24-blue?logo=istio)](https://istio.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -75,18 +75,44 @@ This project deploys a full Istio service mesh with the following components:
 |---|---|---|
 | Kubernetes Cluster | 1.28+ | Minikube, Kind, Docker Desktop, or GKE/EKS |
 | `kubectl` | Latest | Cluster management CLI |
-| `istioctl` | 1.20.x | Istio installation & diagnostics |
+| `istioctl` | 1.24.x | Istio installation & diagnostics |
 | Docker | 20.10+ | Container runtime |
 
-```bash
-# Verify cluster connectivity
-kubectl cluster-info
+### Install istioctl
 
-# Install istioctl (Linux/macOS)
-curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.20.2 sh -
-export PATH=$PWD/istio-1.20.2/bin:$PATH
+**Linux / macOS:**
+```bash
+curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.24.3 sh -
+export PATH=$PWD/istio-1.24.3/bin:$PATH
 istioctl version
 ```
+
+**Windows (PowerShell):**
+```powershell
+curl.exe -L -o istio-1.24.3-win.zip "https://github.com/istio/istio/releases/download/1.24.3/istio-1.24.3-win.zip"
+Expand-Archive -Path istio-1.24.3-win.zip -DestinationPath .
+$env:PATH = "$PWD\istio-1.24.3\bin;$env:PATH"
+istioctl version
+```
+
+### Start Kubernetes Cluster (Minikube)
+
+```bash
+# Start Minikube with enough resources for Istio + Bookinfo (8GB RAM, 4 CPUs)
+minikube start --cpus=4 --memory=8192 --driver=docker
+
+# Verify cluster connectivity
+kubectl cluster-info
+```
+
+> **Note (Windows WSL2 users):** If Docker Desktop uses the WSL2 backend, ensure
+> WSL2 has enough memory by creating `C:\Users\<you>\.wslconfig`:
+> ```ini
+> [wsl2]
+> memory=10GB
+> processors=4
+> ```
+> Then restart WSL: `wsl --shutdown`
 
 ---
 
@@ -296,10 +322,10 @@ done
 
 ```bash
 # Install Prometheus, Kiali, Jaeger, and Grafana
-kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/prometheus.yaml
-kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/kiali.yaml
-kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/jaeger.yaml
-kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/grafana.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/prometheus.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/kiali.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/jaeger.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/grafana.yaml
 
 # Wait for deployments to be ready
 kubectl rollout status deployment/kiali -n istio-system
@@ -436,10 +462,10 @@ kubectl delete -f istio-configs/
 kubectl delete -f app-manifests/
 
 # Step 3: Remove telemetry add-ons
-kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/prometheus.yaml
-kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/kiali.yaml
-kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/jaeger.yaml
-kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/grafana.yaml
+kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/prometheus.yaml
+kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/kiali.yaml
+kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/jaeger.yaml
+kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.24/samples/addons/grafana.yaml
 
 # Step 4: Uninstall Istio control plane
 istioctl uninstall --purge -y
@@ -456,7 +482,7 @@ kubectl label namespace default istio-injection-
 | Tool | Purpose |
 |---|---|
 | **Kubernetes** | Container orchestration platform |
-| **Istio 1.20** | Service mesh control & data plane |
+| **Istio 1.24** | Service mesh control & data plane |
 | **Envoy Proxy** | L7 sidecar proxy (injected by Istio) |
 | **Kiali** | Mesh topology visualization |
 | **Jaeger** | Distributed tracing |
