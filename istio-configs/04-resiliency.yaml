@@ -93,6 +93,8 @@ spec:
     outlierDetection:
       # Health check interval
       interval: 10s
+      # Track external vs local origin errors separately
+      splitExternalLocalOriginErrors: true
       # Number of consecutive gateway errors before ejection
       consecutiveGatewayErrors: 5
       # Number of consecutive local-origin failures before ejection
